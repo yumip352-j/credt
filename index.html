@@ -1418,33 +1418,62 @@ function renderSummary() {
 function renderInterest() {
   const rows = document.getElementById('interestRows');
   const thisYear = new Date().getFullYear();
+  const years = [thisYear, thisYear + 1];
+  const nowY = thisYear;
+  const nowM = new Date().getMonth() + 1;
 
-  // 월별로 만기 도래하는 예금 이자 집계
-  const monthly = {}; // {1: total, 2: total, ...}
-  for (let m = 1; m <= 12; m++) monthly[m] = 0;
+  // 연도별 월별 집계 {year: {month: {before, after}}}
+  const data = {};
+  years.forEach(y => { data[y] = {}; });
 
   deposits.forEach(d => {
     if (!d.end || !d.amount || !d.rate || !d.start) return;
     const endDate = new Date(d.end);
-    if (endDate.getFullYear() !== thisYear) return;
-    const month = endDate.getMonth() + 1;
-    const interest = calcAnnualInterest(d) * 0.846; // 세후
-    monthly[month] += interest;
+    const y = endDate.getFullYear();
+    const m = endDate.getMonth() + 1;
+    if (!years.includes(y)) return;
+    const before = calcAnnualInterest(d);
+    const after = before * 0.846;
+    if (!data[y][m]) data[y][m] = { before: 0, after: 0 };
+    data[y][m].before += before;
+    data[y][m].after += after;
   });
 
-  const yearTotal = Object.values(monthly).reduce((a, b) => a + b, 0);
-  document.getElementById('interestYearTotal') && (document.getElementById('interestYearTotal').textContent = yearTotal ? fmt(Math.round(yearTotal)) + ' 세후' : '—');
+  let html = '';
+  years.forEach(y => {
+    const months = Object.entries(data[y]).sort((a,b) => +a[0] - +b[0]);
+    const yearBefore = months.reduce((a,[,v]) => a + v.before, 0);
+    const yearAfter  = months.reduce((a,[,v]) => a + v.after, 0);
 
-  const now = new Date().getMonth() + 1;
-  rows.innerHTML = Object.entries(monthly).map(([m, amt]) => {
-    const isPast = +m < now;
-    const isCur = +m === now;
-    return `
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border-light);">
-      <span style="font-family:'DM Mono',monospace;font-size:0.72rem;color:${isCur ? 'var(--accent)' : isPast ? 'var(--text-muted)' : 'var(--text-sub)'};">${m}월${isCur ? ' ◀' : ''}</span>
-      <span style="font-family:'DM Mono',monospace;font-size:${amt ? '0.82rem' : '0.72rem'};color:${amt ? (isCur ? 'var(--accent)' : 'var(--deposit)') : 'var(--text-muted)'};">${amt ? fmt(Math.round(amt)) : '—'}</span>
-    </div>`;
-  }).join('');
+    html += `<div style="margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid var(--border);">
+        <span style="font-family:'DM Mono',monospace;font-size:0.75rem;font-weight:500;color:var(--text);">${y}년</span>
+        <span style="font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--text-muted);">
+          세전 ${yearBefore ? fmt(Math.round(yearBefore)) : '—'} &nbsp;/&nbsp; 세후 ${yearAfter ? fmt(Math.round(yearAfter)) : '—'}
+        </span>
+      </div>`;
+
+    if (!months.length) {
+      html += `<div style="font-size:0.72rem;color:var(--text-muted);padding:4px 0;">이자 예정 없음</div>`;
+    } else {
+      months.forEach(([m, v]) => {
+        const isCur = y === nowY && +m === nowM;
+        const isPast = y === nowY && +m < nowM;
+        html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border-light);">
+          <span style="font-family:'DM Mono',monospace;font-size:0.72rem;color:${isCur ? 'var(--accent)' : isPast ? 'var(--text-muted)' : 'var(--text-sub)'};">${m}월${isCur ? ' ◀' : ''}</span>
+          <span style="font-family:'DM Mono',monospace;font-size:0.78rem;color:${isCur ? 'var(--accent)' : 'var(--deposit)'};">
+            ${fmt(Math.round(v.before))} <span style="color:var(--text-muted);font-size:0.7rem;">/ ${fmt(Math.round(v.after))}</span>
+          </span>
+        </div>`;
+      });
+    }
+    html += `</div>`;
+  });
+
+  rows.innerHTML = html;
+  const total = Object.values(data[thisYear]).reduce((a,v) => a + v.after, 0);
+  const el = document.getElementById('interestYearTotal');
+  if (el) el.textContent = total ? fmt(Math.round(total)) + ' 세후' : '—';
 }
 
 
