@@ -1515,15 +1515,18 @@ function renderIncome() {
       return `
       <div class="income-month-row">
         <div class="income-month-label">${+m}월</div>
-        <input class="income-input" type="number" placeholder="0"
-          value="${salary || ''}"
-          onchange="saveIncome('${key}','salary',+this.value)" />
-        <input class="income-input" type="number" placeholder="0"
-          value="${side || ''}"
-          onchange="saveIncome('${key}','side',+this.value)" />
-        <input class="income-input" type="number" placeholder="0"
-          value="${extra || ''}"
-          onchange="saveIncome('${key}','extra',+this.value)" />
+        <input class="income-input" type="text" placeholder="0"
+          value="${salary ? salary.toLocaleString('ko-KR') : ''}"
+          onfocus="this.value=this.value.replace(/,/g,'')"
+          onblur="formatIncomeInput(this);saveIncome('${key}','salary',parseNum(this.value))" />
+        <input class="income-input" type="text" placeholder="0"
+          value="${side ? side.toLocaleString('ko-KR') : ''}"
+          onfocus="this.value=this.value.replace(/,/g,'')"
+          onblur="formatIncomeInput(this);saveIncome('${key}','side',parseNum(this.value))" />
+        <input class="income-input" type="text" placeholder="0"
+          value="${extra ? extra.toLocaleString('ko-KR') : ''}"
+          onfocus="this.value=this.value.replace(/,/g,'')"
+          onblur="formatIncomeInput(this);saveIncome('${key}','extra',parseNum(this.value))" />
         <div class="income-row-total">${total ? fmt(total) : '—'}</div>
       </div>`;
     }).join('');
@@ -1531,6 +1534,11 @@ function renderIncome() {
   document.getElementById('incomeYearTotal').textContent = yearTotal ? fmt(yearTotal) + ' / 년' : '—';
 }
 
+function parseNum(v) { return +v.replace(/,/g,'') || 0; }
+function formatIncomeInput(el) {
+  const n = parseNum(el.value);
+  el.value = n ? n.toLocaleString('ko-KR') : '';
+}
 function saveIncome(key, field, val) {
   if (!income[key]) income[key] = {};
   income[key][field] = val;
