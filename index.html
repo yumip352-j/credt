@@ -1531,6 +1531,24 @@ function renderIncome() {
       </div>`;
     }).join('');
 
+  // 열별 합계 계산
+  let sumSalary = 0, sumSide = 0, sumExtra = 0;
+  months.forEach(m => {
+    const d = income[`${year}-${m}`] || {};
+    sumSalary += d.salary || 0;
+    sumSide   += d.side   || 0;
+    sumExtra  += d.extra  || 0;
+  });
+
+  grid.innerHTML += `
+    <div class="income-month-row" style="border-top:2px solid var(--border);margin-top:4px;font-weight:600;">
+      <div class="income-month-label" style="color:var(--text);font-weight:600;">합계</div>
+      <div class="income-row-total" style="color:#7a6a8a;">${sumSalary ? fmt(sumSalary) : '—'}</div>
+      <div class="income-row-total" style="color:#7a6a8a;">${sumSide ? fmt(sumSide) : '—'}</div>
+      <div class="income-row-total" style="color:#7a6a8a;">${sumExtra ? fmt(sumExtra) : '—'}</div>
+      <div class="income-row-total" style="color:var(--text);font-weight:600;">${yearTotal ? fmt(yearTotal) : '—'}</div>
+    </div>`;
+
   document.getElementById('incomeYearTotal').textContent = yearTotal ? fmt(yearTotal) + ' / 년' : '—';
 }
 
