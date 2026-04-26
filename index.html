@@ -739,6 +739,11 @@
     <div class="s-label" style="color:#7a6f66;">올해 신규 주식</div>
     <div class="s-val" id="sumNewStock" style="color:var(--stock);">—</div>
   </div>
+  <div class="sum-divider"></div>
+  <div class="sum-item">
+    <div class="s-label" style="color:#7a6f66;">올해 수입 총액</div>
+    <div class="s-val" id="sumIncomeTotal" style="color:#7a6a8a;">—</div>
+  </div>
 </div>
 
 <!-- MAIN GRID -->
@@ -1413,6 +1418,14 @@ function renderSummary() {
       .reduce((b, e) => b + e.amount, 0), 0);
   document.getElementById('sumNewDeposit').textContent = newDepTotal ? fmt(newDepTotal) : '—';
   document.getElementById('sumNewStock').textContent = newStTotal ? fmt(newStTotal) : '—';
+
+  // 올해 수입 총액
+  const incomeTotal = Array.from({length:12}, (_,i) => String(i+1).padStart(2,'0'))
+    .reduce((a, m) => {
+      const d = income[`${thisYear}-${m}`] || {};
+      return a + (d.salary||0) + (d.side||0) + (d.extra||0);
+    }, 0);
+  document.getElementById('sumIncomeTotal').textContent = incomeTotal ? fmt(incomeTotal) : '—';
 }
 
 function renderInterest() {
