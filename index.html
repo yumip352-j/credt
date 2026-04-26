@@ -128,7 +128,7 @@
   }
 
   /* ── MAIN ── */
-  main { padding: 36px 40px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 32px; }
+  main { padding: 36px 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
 
   /* ── SECTION CARD ── */
   .section-card {
@@ -435,7 +435,6 @@
     border: 1px solid var(--border);
     border-radius: 2px;
     padding: 22px 28px;
-    grid-column: 1 / 3;
   }
   .interest-box h3 {
     font-size: 0.7rem;
@@ -571,7 +570,7 @@
   /* income grid */
   .income-month-row {
     display: grid;
-    grid-template-columns: 64px 1fr 1fr 1fr 80px;
+    grid-template-columns: 40px 1fr 1fr 1fr 76px;
     gap: 8px;
     align-items: center;
     padding: 7px 0;
@@ -606,7 +605,7 @@
   }
   .income-header-row {
     display: grid;
-    grid-template-columns: 64px 1fr 1fr 1fr 80px;
+    grid-template-columns: 40px 1fr 1fr 1fr 76px;
     gap: 8px;
     padding: 0 0 8px;
     border-bottom: 2px solid var(--border);
@@ -681,8 +680,8 @@
     header { padding: 20px; flex-direction: column; align-items: flex-start; }
     .summary-bar { padding: 14px 20px; gap: 20px; flex-wrap: wrap; }
     main { padding: 20px; grid-template-columns: 1fr; gap: 20px; }
-    .interest-box { grid-column: 1; }
-    .section-card[style*='grid-column:3'] { grid-column: 1; grid-row: auto; }
+
+    .section-card[style*='grid-row:1/3'] { grid-row: auto; }
     .modal-form { grid-template-columns: 1fr; }
     .modal-form .full { grid-column: 1; }
     .stock-form-row { grid-template-columns: 1fr 1fr; }
@@ -746,7 +745,7 @@
 <main>
 
   <!-- DEPOSIT SECTION -->
-  <div class="section-card deposit-card">
+  <div class="section-card deposit-card" style="grid-row:1/3;">
     <div class="section-header">
       <div class="section-title">
         <div class="sec-dot"></div>
@@ -780,15 +779,16 @@
   </div>
 
   <!-- INTEREST SUMMARY -->
-  <div class="interest-box">
-    <h3>연간 이자 수익 내역</h3>
-    <div class="interest-rows" id="interestRows">
-      <div class="empty-state">예금 데이터를 입력하면 이자가 계산됩니다</div>
+  <div class="interest-box" style="grid-column:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <h3 style="margin:0;">월별 이자 수령 예정</h3>
+      <span style="font-family:'DM Mono',monospace;font-size:0.82rem;color:var(--accent);" id="interestYearTotal">—</span>
     </div>
+    <div id="interestRows"></div>
   </div>
 
   <!-- INCOME SECTION -->
-  <div class="section-card" style="grid-column:3;grid-row:1/3;">
+  <div class="section-card">
     <div class="section-header">
       <div class="section-title">
         <div class="sec-dot" style="background:#7a6a8a;"></div>
@@ -799,7 +799,7 @@
         <select id="incomeYearSel" onchange="renderIncome()" style="background:var(--bg2);border:1px solid var(--border);border-radius:2px;padding:5px 10px;font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--text);outline:none;cursor:pointer;"></select>
       </div>
     </div>
-    <div id="incomeGrid" style="padding:16px 24px;"></div>
+    <div id="incomeGrid" style="padding:12px 20px;"></div>
   </div>
 
 </main>
@@ -1417,40 +1417,34 @@ function renderSummary() {
 
 function renderInterest() {
   const rows = document.getElementById('interestRows');
-  if (!deposits.length) {
-    rows.innerHTML = '<div class="empty-state">예금 데이터를 입력하면 이자가 계산됩니다</div>';
-    return;
-  }
-  let total = 0;
-  const items = deposits.map(d => {
-    const interest = calcAnnualInterest(d);
-    total += interest;
-    const s = d.start ? new Date(d.start) : null;
-    const e = d.end ? new Date(d.end) : null;
-    const days = (s && e) ? Math.round((e - s) / 86400000) : 0;
-    const interestAfter = interest * 0.846;
+  const thisYear = new Date().getFullYear();
+
+  // 월별로 만기 도래하는 예금 이자 집계
+  const monthly = {}; // {1: total, 2: total, ...}
+  for (let m = 1; m <= 12; m++) monthly[m] = 0;
+
+  deposits.forEach(d => {
+    if (!d.end || !d.amount || !d.rate || !d.start) return;
+    const endDate = new Date(d.end);
+    if (endDate.getFullYear() !== thisYear) return;
+    const month = endDate.getMonth() + 1;
+    const interest = calcAnnualInterest(d) * 0.846; // 세후
+    monthly[month] += interest;
+  });
+
+  const yearTotal = Object.values(monthly).reduce((a, b) => a + b, 0);
+  document.getElementById('interestYearTotal') && (document.getElementById('interestYearTotal').textContent = yearTotal ? fmt(Math.round(yearTotal)) + ' 세후' : '—');
+
+  const now = new Date().getMonth() + 1;
+  rows.innerHTML = Object.entries(monthly).map(([m, amt]) => {
+    const isPast = +m < now;
+    const isCur = +m === now;
     return `
-    <div class="interest-row">
-      <div>
-        <div class="ir-name">${d.name}</div>
-        ${d.end ? `<div style="font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--text-muted);margin-top:2px;">${d.end} 만기</div>` : ''}
-      </div>
-      <div style="display:flex;gap:24px;align-items:center;">
-        <span class="ir-detail" style="margin:0;">${fmt(d.amount)}</span>
-        <span class="ir-interest">${fmt(Math.round(interest))}</span>
-        <span style="font-family:'DM Mono',monospace;font-size:0.82rem;color:var(--text-sub);">/ ${fmt(Math.round(interestAfter))}</span>
-      </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border-light);">
+      <span style="font-family:'DM Mono',monospace;font-size:0.72rem;color:${isCur ? 'var(--accent)' : isPast ? 'var(--text-muted)' : 'var(--text-sub)'};">${m}월${isCur ? ' ◀' : ''}</span>
+      <span style="font-family:'DM Mono',monospace;font-size:${amt ? '0.82rem' : '0.72rem'};color:${amt ? (isCur ? 'var(--accent)' : 'var(--deposit)') : 'var(--text-muted)'};">${amt ? fmt(Math.round(amt)) : '—'}</span>
     </div>`;
   }).join('');
-
-  const totalAfter = total * 0.846;
-  rows.innerHTML = items + `
-  <div class="interest-total-row">
-    <div class="label">이자 합계</div>
-    <div style="text-align:right;">
-      <div class="val">${fmt(Math.round(total))} <span style="font-size:0.8rem;font-weight:400;">/ 세후 ${fmt(Math.round(totalAfter))}</span></div>
-    </div>
-  </div>`;
 }
 
 
