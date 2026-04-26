@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>자산 관리</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;600&family=DM+Mono:wght@300;400;500&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f2ed;
+    --bg2: #eee9e1;
+    --surface: #faf8f4;
+    --border: #d8d0c4;
+    --border-light: #e8e2d8;
+    --text: #2a2420;
+    --text-sub: #7a6f66;
+    --text-muted: #a89f96;
+    --deposit: #4a6741;
+    --deposit-light: #e8f0e6;
+    --deposit-mid: #c5d9c2;
+    --stock: #3d5a7a;
+    --stock-light: #e4ecf4;
+    --stock-mid: #b8cfe0;
+    --accent: #c17f3a;
+    --accent-light: #f5ead8;
+    --danger: #a04040;
+    --danger-light: #f5e4e4;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Serif KR', serif;
+    font-weight: 300;
+    min-height: 100vh;
+    padding: 0 0 80px;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--text);
+    color: var(--bg);
+    padding: 28px 40px 22px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+  }
+  header h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: 2rem;
+    letter-spacing: 0.04em;
+    line-height: 1;
+  }
+  header h1 span { font-style: italic; color: #c9b99a; }
+  .header-total {
+    text-align: right;
+  }
+  .header-total .label {
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #9a8f82;
+    margin-bottom: 2px;
+  }
+  .header-total .amount {
+    font-family: 'DM Mono', monospace;
+    font-size: 1.35rem;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+
+  /* ── SUMMARY BAR ── */
+  .summary-bar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 18px 40px;
+    display: flex;
+    gap: 40px;
+    align-items: center;
+  }
+  .sum-item { display: flex; flex-direction: column; gap: 3px; }
+  .sum-item .s-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .sum-item .s-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.95rem;
+    font-weight: 500;
+  }
+  .sum-item.deposit .s-val { color: var(--deposit); }
+  .sum-item.stock .s-val { color: var(--stock); }
+  .sum-item.interest .s-val { color: var(--accent); }
+  .sum-divider {
+    width: 1px; height: 36px; background: var(--border); flex-shrink: 0;
+  }
+
+  /* ── MAIN ── */
+  main { padding: 36px 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+
+  /* ── SECTION CARD ── */
+  .section-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .section-header {
+    padding: 18px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border-light);
+  }
+  .section-title {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .sec-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  }
+  .deposit-card .sec-dot { background: var(--deposit); }
+  .stock-card .sec-dot { background: var(--stock); }
+  .section-title h2 {
+    font-size: 0.8rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .section-total {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--text-sub);
+  }
+
+  /* ── ADD BTN ── */
+  .btn-add {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-sub);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    padding: 6px 14px;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.15s;
+  }
+  .btn-add:hover {
+    border-color: var(--text);
+    color: var(--text);
+    background: var(--bg2);
+  }
+  .deposit-card .btn-add:hover { border-color: var(--deposit); color: var(--deposit); }
+  .stock-card .btn-add:hover { border-color: var(--stock); color: var(--stock); }
+
+  /* ── ITEMS LIST ── */
+  .items-list { padding: 8px 0; }
+
+  /* ── DEPOSIT ITEM ── */
+  .deposit-item {
+    border-bottom: 1px solid var(--border-light);
+    overflow: hidden;
+  }
+  .deposit-item:last-child { border-bottom: none; }
+
+  .deposit-summary {
+    padding: 14px 24px;
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    align-items: center;
+    gap: 16px;
+    cursor: pointer;
+    transition: background 0.12s;
+    user-select: none;
+  }
+  .deposit-summary:hover { background: var(--bg2); }
+  .deposit-summary.active { background: var(--deposit-light); }
+
+  .dep-name {
+    font-size: 0.85rem;
+    font-weight: 400;
+  }
+  .dep-bank {
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+    letter-spacing: 0.04em;
+  }
+  .dep-amount {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.88rem;
+    text-align: right;
+    white-space: nowrap;
+  }
+  .dep-chevron {
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    transition: transform 0.2s;
+    width: 14px;
+    text-align: center;
+  }
+  .deposit-summary.active .dep-chevron { transform: rotate(180deg); }
+
+  /* ── DEPOSIT DETAIL ── */
+  .deposit-detail {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+    background: var(--deposit-light);
+    border-top: 0px solid transparent;
+  }
+  .deposit-detail.open {
+    max-height: 400px;
+    border-top: 1px solid var(--deposit-mid);
+  }
+  .detail-inner {
+    padding: 16px 24px 20px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 20px;
+  }
+  .detail-field { display: flex; flex-direction: column; gap: 4px; }
+  .detail-field label {
+    font-size: 0.62rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--deposit);
+    opacity: 0.7;
+  }
+  .detail-field input, .detail-field select {
+    background: var(--surface);
+    border: 1px solid var(--deposit-mid);
+    border-radius: 2px;
+    padding: 7px 10px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--text);
+    outline: none;
+    width: 100%;
+    transition: border-color 0.15s;
+  }
+  .detail-field input:focus {
+    border-color: var(--deposit);
+  }
+  .detail-field.full { grid-column: 1 / -1; }
+
+  .detail-actions {
+    padding: 0 24px 16px;
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    background: var(--deposit-light);
+  }
+  .btn-save {
+    background: var(--deposit);
+    color: white;
+    border: none;
+    padding: 7px 18px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: opacity 0.15s;
+  }
+  .btn-save:hover { opacity: 0.85; }
+  .btn-mature {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 7px 18px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: opacity 0.15s;
+  }
+  .btn-mature:hover { opacity: 0.85; }
+  .btn-delete {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--danger);
+    padding: 7px 14px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.15s;
+    margin-right: auto;
+  }
+  .btn-delete:hover { background: var(--danger-light); border-color: var(--danger); }
+
+  /* status badges */
+  .dep-status {
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 20px;
+    font-family: 'DM Mono', monospace;
+  }
+  .status-active { background: var(--deposit-light); color: var(--deposit); }
+  .status-mature { background: var(--accent-light); color: var(--accent); }
+  .status-expired { background: var(--danger-light); color: var(--danger); }
+
+  /* ── STOCK ITEM ── */
+  .stock-item {
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--border-light);
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    align-items: start;
+  }
+  .stock-item:last-child { border-bottom: none; }
+  .stock-name { font-size: 0.85rem; font-weight: 400; }
+  .stock-type {
+    font-size: 0.64rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--stock);
+    opacity: 0.7;
+    margin-top: 2px;
+  }
+  .stock-entries { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+  .stock-entry {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--text-sub);
+  }
+  .stock-entry .entry-date { color: var(--text-muted); min-width: 80px; }
+  .stock-entry .entry-amt { color: var(--text); font-weight: 500; }
+  .stock-total {
+    text-align: right;
+  }
+  .stock-total .t-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 3px;
+  }
+  .stock-total .t-amt {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.92rem;
+    color: var(--stock);
+    font-weight: 500;
+  }
+
+  /* stock add form inside card */
+  .stock-add-form {
+    padding: 14px 24px;
+    background: var(--stock-light);
+    border-top: 1px solid var(--stock-mid);
+    display: none;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .stock-add-form.open { display: flex; }
+  .stock-form-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  .stock-form-row .detail-field input,
+  .stock-form-row .detail-field select {
+    border-color: var(--stock-mid);
+  }
+  .stock-form-row .detail-field input:focus {
+    border-color: var(--stock);
+  }
+  .btn-save-stock {
+    background: var(--stock);
+    color: white;
+    border: none;
+    padding: 7px 18px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    border-radius: 2px;
+    align-self: flex-end;
+    transition: opacity 0.15s;
+  }
+  .btn-save-stock:hover { opacity: 0.85; }
+
+  /* entry delete btn */
+  .btn-del-entry {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 0.75rem;
+    padding: 0 3px;
+    line-height: 1;
+    transition: color 0.1s;
+  }
+  .btn-del-entry:hover { color: var(--danger); }
+
+  /* ── INTEREST SUMMARY BOX ── */
+  .interest-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 22px 28px;
+    grid-column: 1 / -1;
+  }
+  .interest-box h3 {
+    font-size: 0.7rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+  }
+  .interest-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .interest-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 14px;
+    background: var(--bg2);
+    border-radius: 2px;
+  }
+  .ir-name { font-size: 0.82rem; }
+  .ir-detail { font-size: 0.68rem; color: var(--text-muted); margin-top: 2px; font-family: 'DM Mono', monospace; }
+  .ir-interest { font-family: 'DM Mono', monospace; font-size: 0.88rem; color: var(--accent); font-weight: 500; }
+  .interest-total-row {
+    margin-top: 8px;
+    padding: 10px 14px;
+    background: var(--accent-light);
+    border-radius: 2px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid #e8d4b8;
+  }
+  .interest-total-row .label { font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
+  .interest-total-row .val { font-family: 'DM Mono', monospace; font-size: 1.05rem; color: var(--accent); font-weight: 500; }
+
+  /* modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(42,36,32,0.45);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 28px 32px;
+    width: min(480px, 90vw);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+  }
+  .modal h3 {
+    font-size: 0.78rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    color: var(--text-sub);
+  }
+  .modal-form { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .modal-form .full { grid-column: 1 / -1; }
+  .modal-form label {
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    display: block;
+    margin-bottom: 5px;
+  }
+  .modal-form input, .modal-form select {
+    width: 100%;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 9px 12px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .modal-form input:focus { border-color: var(--deposit); }
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 22px;
+  }
+  .btn-cancel {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-sub);
+    padding: 8px 18px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    cursor: pointer;
+    border-radius: 2px;
+  }
+  .btn-cancel:hover { background: var(--bg2); }
+  .btn-confirm {
+    background: var(--deposit);
+    color: white;
+    border: none;
+    padding: 8px 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    border-radius: 2px;
+  }
+  .btn-confirm.stock-btn { background: var(--stock); }
+
+  /* empty state */
+  .empty-state {
+    padding: 32px 24px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+  }
+
+  /* matured overlay */
+  .dep-matured .dep-name { text-decoration: line-through; opacity: 0.6; }
+
+  /* yesugeum header */
+  .header-yesugeum .label {
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #9a8f82;
+    margin-bottom: 2px;
+  }
+  .header-yesugeum .amount {
+    font-family: 'DM Mono', monospace;
+    font-size: 1.05rem;
+    font-weight: 400;
+  }
+
+  /* transfer button */
+  .btn-transfer {
+    background: none;
+    border: 1px solid var(--stock-mid);
+    color: var(--stock);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    padding: 5px 12px;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.15s;
+  }
+  .btn-transfer:hover { background: var(--stock-light); border-color: var(--stock); }
+
+  /* entry styles */
+  .entry-note {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+  .amt-neg { color: var(--danger) !important; }
+  .entry-out { opacity: 0.75; }
+
+  @media (max-width: 768px) {
+    header { padding: 20px; flex-direction: column; align-items: flex-start; }
+    .summary-bar { padding: 14px 20px; gap: 20px; flex-wrap: wrap; }
+    main { padding: 20px; grid-template-columns: 1fr; gap: 20px; }
+    .interest-box { grid-column: 1; }
+    .modal-form { grid-template-columns: 1fr; }
+    .modal-form .full { grid-column: 1; }
+    .stock-form-row { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <h1>자산 <span>관리</span></h1>
+  <div style="display:flex;gap:32px;align-items:flex-end;">
+    <div class="header-yesugeum">
+      <div class="label">예수금</div>
+      <div class="amount" id="yesugeumAmt" style="color:#c9b99a;cursor:pointer;" onclick="openYesugeumModal()" title="예수금 관리">—</div>
+    </div>
+    <div class="header-total">
+      <div class="label">총 자산</div>
+      <div class="amount" id="totalAsset">—</div>
+    </div>
+  </div>
+</header>
+
+<!-- SUMMARY BAR -->
+<div class="summary-bar">
+  <div class="sum-item deposit">
+    <div class="s-label">예금 합계</div>
+    <div class="s-val" id="sumDeposit">—</div>
+  </div>
+  <div class="sum-divider"></div>
+  <div class="sum-item stock">
+    <div class="s-label">주식 투자금</div>
+    <div class="s-val" id="sumStock">—</div>
+  </div>
+  <div class="sum-divider"></div>
+  <div class="sum-item interest">
+    <div class="s-label">연간 이자 (세전)</div>
+    <div class="s-val" id="sumInterest">—</div>
+  </div>
+  <div class="sum-divider"></div>
+  <div class="sum-item" style="cursor:pointer;" onclick="openYesugeumModal()">
+    <div class="s-label" style="color:#7a6f66;">예수금</div>
+    <div class="s-val" id="sumYesugeum" style="color:#8a6a3a;">—</div>
+  </div>
+</div>
+
+<!-- MAIN GRID -->
+<main>
+
+  <!-- DEPOSIT SECTION -->
+  <div class="section-card deposit-card">
+    <div class="section-header">
+      <div class="section-title">
+        <div class="sec-dot"></div>
+        <h2>예금</h2>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <span class="section-total" id="depositTotal">₩0</span>
+        <button class="btn-add" onclick="openDepositModal()">+ 추가</button>
+      </div>
+    </div>
+    <div class="items-list" id="depositList">
+      <div class="empty-state">예금 항목이 없습니다</div>
+    </div>
+  </div>
+
+  <!-- STOCK SECTION -->
+  <div class="section-card stock-card">
+    <div class="section-header">
+      <div class="section-title">
+        <div class="sec-dot"></div>
+        <h2>주식 / ETF</h2>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <span class="section-total" id="stockTotal">₩0</span>
+        <button class="btn-add" onclick="openStockModal()">+ 추가</button>
+      </div>
+    </div>
+    <div class="items-list" id="stockList">
+      <div class="empty-state">주식/ETF 항목이 없습니다</div>
+    </div>
+  </div>
+
+  <!-- INTEREST SUMMARY -->
+  <div class="interest-box">
+    <h3>연간 이자 수익 내역</h3>
+    <div class="interest-rows" id="interestRows">
+      <div class="empty-state">예금 데이터를 입력하면 이자가 계산됩니다</div>
+    </div>
+  </div>
+
+</main>
+
+<!-- DEPOSIT MODAL -->
+<div class="modal-overlay" id="depositModal">
+  <div class="modal">
+    <h3>예금 추가</h3>
+    <div class="modal-form">
+      <div class="full">
+        <label>예금 이름</label>
+        <input type="text" id="d-name" placeholder="예: KB 정기예금" />
+      </div>
+      <div>
+        <label>은행</label>
+        <input type="text" id="d-bank" placeholder="예: 국민은행" />
+      </div>
+      <div>
+        <label>금액 (원)</label>
+        <input type="number" id="d-amount" placeholder="200000000" />
+      </div>
+      <div>
+        <label>가입일</label>
+        <input type="date" id="d-start" />
+      </div>
+      <div>
+        <label>만기일</label>
+        <input type="date" id="d-end" />
+      </div>
+      <div>
+        <label>연이율 (%)</label>
+        <input type="number" id="d-rate" step="0.01" placeholder="3.50" />
+      </div>
+      <div>
+        <label>이자 지급 방식</label>
+        <select id="d-paytype">
+          <option value="maturity">만기일시지급</option>
+          <option value="monthly">월이자지급</option>
+          <option value="quarterly">분기이자지급</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeDepositModal()">취소</button>
+      <button class="btn-confirm" onclick="saveDeposit()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- YESUGEUM MODAL -->
+<div class="modal-overlay" id="yesugeumModal">
+  <div class="modal" style="width:min(540px,95vw);">
+    <h3>예수금 관리</h3>
+    <!-- 잔액 표시 -->
+    <div style="background:var(--accent-light);border:1px solid #e8d4b8;border-radius:2px;padding:12px 16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);">현재 잔액</span>
+      <span id="yg-bal" style="font-family:'DM Mono',monospace;font-size:1.1rem;color:var(--accent);font-weight:500;">—</span>
+    </div>
+    <!-- 입출금 폼 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;align-items:flex-end;margin-bottom:12px;">
+      <div><label style="font-size:0.6rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:4px;">날짜</label>
+        <input type="date" id="yg-date" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:2px;padding:7px 10px;font-family:'DM Mono',monospace;font-size:0.78rem;color:var(--text);outline:none;" /></div>
+      <div><label style="font-size:0.6rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:4px;">금액 (원)</label>
+        <input type="number" id="yg-amount" placeholder="0" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:2px;padding:7px 10px;font-family:'DM Mono',monospace;font-size:0.78rem;color:var(--text);outline:none;" /></div>
+      <div><label style="font-size:0.6rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:4px;">메모</label>
+        <input type="text" id="yg-note" placeholder="출처 메모" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:2px;padding:7px 10px;font-family:'DM Mono',monospace;font-size:0.78rem;color:var(--text);outline:none;" /></div>
+      <div style="display:flex;gap:5px;">
+        <button onclick="addYesugeum(1)" style="background:var(--deposit);color:#fff;border:none;padding:7px 12px;font-family:'DM Mono',monospace;font-size:0.72rem;cursor:pointer;border-radius:2px;white-space:nowrap;">+ 입금</button>
+        <button onclick="addYesugeum(-1)" style="background:var(--danger);color:#fff;border:none;padding:7px 12px;font-family:'DM Mono',monospace;font-size:0.72rem;cursor:pointer;border-radius:2px;white-space:nowrap;">- 출금</button>
+      </div>
+    </div>
+    <!-- 내역 -->
+    <div id="yg-list" style="max-height:280px;overflow-y:auto;border:1px solid var(--border);border-radius:2px;"></div>
+    <div class="modal-actions" style="margin-top:14px;">
+      <button class="btn-cancel" onclick="closeYesugeumModal()">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- TRANSFER MODAL -->
+<div class="modal-overlay" id="transferModal">
+  <div class="modal">
+    <h3>계좌 이체</h3>
+    <div style="background:var(--stock-light);border:1px solid var(--stock-mid);border-radius:2px;padding:12px 14px;margin-bottom:16px;">
+      <div style="font-size:0.62rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--stock);opacity:0.7;margin-bottom:4px;">출금 계좌</div>
+      <div id="tf-from-name" style="font-size:0.88rem;font-weight:400;"></div>
+      <div id="tf-from-bal" style="font-family:'DM Mono',monospace;font-size:0.8rem;color:var(--stock);margin-top:2px;"></div>
+    </div>
+    <div class="modal-form">
+      <div class="full">
+        <label>입금 계좌</label>
+        <select id="tf-to"></select>
+      </div>
+      <div>
+        <label>날짜</label>
+        <input type="date" id="tf-date" />
+      </div>
+      <div>
+        <label>금액 (원)</label>
+        <input type="number" id="tf-amount" placeholder="0" />
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeTransfer()">취소</button>
+      <button class="btn-confirm stock-btn" onclick="execTransfer()">이체</button>
+    </div>
+  </div>
+</div>
+
+<!-- STOCK MODAL -->
+<div class="modal-overlay" id="stockModal">
+  <div class="modal">
+    <h3>주식 / ETF 추가</h3>
+    <div class="modal-form">
+      <div class="full">
+        <label>계좌명 / 종목명</label>
+        <input type="text" id="s-name" placeholder="예: Toss - VOO" />
+      </div>
+      <div class="full">
+        <label>유형</label>
+        <select id="s-type">
+          <option value="ETF">ETF</option>
+          <option value="주식">주식</option>
+          <option value="ISA">ISA</option>
+          <option value="기타">기타</option>
+        </select>
+      </div>
+      <div>
+        <label>투자일</label>
+        <input type="date" id="s-date" />
+      </div>
+      <div>
+        <label>투자 금액 (원)</label>
+        <input type="number" id="s-amount" placeholder="10000000" />
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeStockModal()">취소</button>
+      <button class="btn-confirm stock-btn" onclick="saveStock()">저장</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── STATE ──
+let deposits = JSON.parse(localStorage.getItem('deposits') || '[]');
+let stocks = JSON.parse(localStorage.getItem('stocks') || '[]');
+let yesugeum = JSON.parse(localStorage.getItem('yesugeum') || '[]'); // [{id,date,amount,note}]
+let openDepositId = null;
+let editingStockId = null;
+
+// ── SEED DATA (first run) ──
+if (!localStorage.getItem('initialized_v3')) {
+  deposits = [
+    {
+      id: uid(), name: 'NH올원e예금 ①', bank: 'NH농협',
+      amount: 1000000, start: '', end: '',
+      rate: 0, paytype: 'maturity', matured: false
+    },
+    {
+      id: uid(), name: 'NH올원e예금 ②', bank: 'NH농협',
+      amount: 21236629, start: '', end: '',
+      rate: 0, paytype: 'maturity', matured: false
+    },
+    {
+      id: uid(), name: 'WON플러스예금 ①', bank: '우리은행',
+      amount: 7000000, start: '', end: '',
+      rate: 0, paytype: 'maturity', matured: false
+    },
+    {
+      id: uid(), name: 'WON플러스예금 ②', bank: '우리은행',
+      amount: 4500000, start: '', end: '',
+      rate: 0, paytype: 'maturity', matured: false
+    },
+    {
+      id: uid(), name: 'WON플러스예금 ③', bank: '우리은행',
+      amount: 1500000, start: '', end: '',
+      rate: 0, paytype: 'maturity', matured: false
+    },
+    {
+      id: uid(), name: 'WON플러스예금 ④', bank: '우리은행',
+      amount: 20000000, start: '', end: '',
+      rate: 0, paytype: 'maturity', matured: false
+    },
+    {
+      id: uid(), name: '하나의 정기예금 ①', bank: '하나은행',
+      amount: 36000000, start: '', end: '',
+      rate: 0, paytype: 'maturity', matured: false
+    },
+    {
+      id: uid(), name: '하나의 정기예금 ②', bank: '하나은행',
+      amount: 41000000, start: '', end: '',
+      rate: 0, paytype: 'maturity', matured: false
+    },
+    {
+      id: uid(), name: '정기예금 ①', bank: 'B은행',
+      amount: 2026000, start: '', end: '',
+      rate: 0, paytype: 'maturity', matured: false
+    },
+    {
+      id: uid(), name: '정기예금 ②', bank: 'B은행',
+      amount: 20500000, start: '', end: '',
+      rate: 0, paytype: 'maturity', matured: false
+    },
+    {
+      id: uid(), name: '정기예금 ③', bank: 'B은행',
+      amount: 2000000, start: '', end: '',
+      rate: 0, paytype: 'maturity', matured: false
+    },
+    {
+      id: uid(), name: '정기예금 ④', bank: 'B은행',
+      amount: 25000000, start: '', end: '',
+      rate: 0, paytype: 'maturity', matured: false
+    },
+    {
+      id: uid(), name: '정기예금 ⑤', bank: 'B은행',
+      amount: 6237371, start: '', end: '',
+      rate: 0, paytype: 'maturity', matured: false
+    },
+    {
+      id: uid(), name: '코드K정기예금 ①', bank: '케이뱅크',
+      amount: 10000000, start: '', end: '',
+      rate: 0, paytype: 'maturity', matured: false
+    },
+    {
+      id: uid(), name: '코드K정기예금 ②', bank: '케이뱅크',
+      amount: 2000000, start: '', end: '',
+      rate: 0, paytype: 'maturity', matured: false
+    }
+  ];
+  stocks = [
+    {
+      id: uid(), name: '미래에셋 종합계좌', type: '주식',
+      entries: [{ id: uid(), date: '2025-04-26', amount: 91081377 }]
+    },
+    {
+      id: uid(), name: '미래에셋 ISA(중개형)', type: 'ISA',
+      entries: [{ id: uid(), date: '2025-04-26', amount: 20242961 }]
+    },
+    {
+      id: uid(), name: '토스증권 기본계좌', type: 'ETF',
+      entries: [{ id: uid(), date: '2025-04-26', amount: 1642002 }]
+    }
+  ];
+  localStorage.removeItem('initialized');
+  localStorage.removeItem('initialized_v2');
+  save();
+  localStorage.setItem('initialized_v3', '1');
+}
+
+// ── TRANSFER ──
+let transferFrom = null;
+function openTransfer(fromId) {
+  transferFrom = fromId;
+  const from = stocks.find(s => s.id === fromId);
+  const fromTotal = (from.entries || []).reduce((a, e) => a + e.amount, 0);
+  document.getElementById('tf-from-name').textContent = from.name;
+  document.getElementById('tf-from-bal').textContent = fmt(fromTotal);
+  document.getElementById('tf-amount').value = '';
+  document.getElementById('tf-date').value = new Date().toISOString().slice(0,10);
+  const sel = document.getElementById('tf-to');
+  sel.innerHTML = stocks.filter(s => s.id !== fromId).map(s =>
+    '<option value="' + s.id + '">' + s.name + '</option>'
+  ).join('') + '<option value="__yesugeum__">예수금</option>';
+  document.getElementById('transferModal').classList.add('open');
+}
+function closeTransfer() {
+  document.getElementById('transferModal').classList.remove('open');
+}
+// ── YESUGEUM ──
+function depSendToYg(depId) {
+  const d = deposits.find(x => x.id === depId);
+  if (!d || !d.amount) return;
+  if (!confirm(d.name + ' ₩' + d.amount.toLocaleString() + '을 예수금으로 이체하시겠습니까?')) return;
+  const date = new Date().toISOString().slice(0,10);
+  yesugeum.push({ id: uid(), date, amount: d.amount, note: '← ' + d.name });
+  save(); render();
+}
+function openYesugeumModal() {
+  document.getElementById('yg-date').value = new Date().toISOString().slice(0,10);
+  document.getElementById('yg-amount').value = '';
+  document.getElementById('yg-note').value = '';
+  renderYgList();
+  updateYgBal();
+  document.getElementById('yesugeumModal').classList.add('open');
+}
+function closeYesugeumModal() {
+  document.getElementById('yesugeumModal').classList.remove('open');
+}
+function updateYgBal() {
+  const total = yesugeum.reduce((a, e) => a + e.amount, 0);
+  document.getElementById('yg-bal').textContent = fmt(total);
+}
+function addYesugeum(sign) {
+  const amount = +document.getElementById('yg-amount').value;
+  const date = document.getElementById('yg-date').value;
+  const note = document.getElementById('yg-note').value.trim();
+  if (!amount) { alert('금액을 입력하세요'); return; }
+  yesugeum.push({ id: uid(), date, amount: amount * sign, note });
+  document.getElementById('yg-amount').value = '';
+  document.getElementById('yg-note').value = '';
+  save(); render();
+  renderYgList(); updateYgBal();
+}
+function deleteYgEntry(id) {
+  yesugeum = yesugeum.filter(e => e.id !== id);
+  save(); render();
+  renderYgList(); updateYgBal();
+}
+function renderYgList() {
+  const el = document.getElementById('yg-list');
+  if (!yesugeum.length) {
+    el.innerHTML = '<div class="empty-state">내역 없음</div>';
+    return;
+  }
+  const sorted = [...yesugeum].reverse();
+  el.innerHTML = sorted.map(e => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 14px;border-bottom:1px solid var(--border-light);">
+      <div>
+        <span style="font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--text-muted);margin-right:10px;">${e.date}</span>
+        <span style="font-size:0.78rem;color:var(--text-sub);">${e.note || ''}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-family:'DM Mono',monospace;font-size:0.85rem;font-weight:500;color:${e.amount >= 0 ? 'var(--deposit)' : 'var(--danger)'};">${e.amount >= 0 ? '+' : ''}${fmt(e.amount)}</span>
+        <button class="btn-del-entry" onclick="deleteYgEntry('${e.id}')">×</button>
+      </div>
+    </div>`).join('');
+}
+function depositToYesugeum(depId) {
+  const d = deposits.find(x => x.id === depId);
+  if (!d) return;
+  const date = new Date().toISOString().slice(0,10);
+  yesugeum.push({ id: uid(), date, amount: d.amount, note: '← ' + d.name + ' 만기' });
+  save(); render();
+}
+
+function execTransfer() {
+  const toId = document.getElementById('tf-to').value;
+  const amount = +document.getElementById('tf-amount').value;
+  const date = document.getElementById('tf-date').value;
+  if (!amount || amount <= 0) { alert('금액을 입력하세요'); return; }
+  const from = stocks.find(s => s.id === transferFrom);
+  const to = stocks.find(s => s.id === toId);
+  if (!from || !to) return;
+  if (toId === '__yesugeum__') {
+    from.entries.push({ id: uid(), date, amount: -amount, note: '→ 예수금' });
+    yesugeum.push({ id: uid(), date, amount, note: '← ' + from.name });
+  } else {
+    from.entries.push({ id: uid(), date, amount: -amount, note: '→ ' + to.name });
+    to.entries.push({ id: uid(), date, amount, note: '← ' + from.name });
+  }
+  save(); render(); closeTransfer();
+}
+
+function uid() {
+  return Math.random().toString(36).slice(2, 10);
+}
+
+function save() {
+  localStorage.setItem('deposits', JSON.stringify(deposits));
+  localStorage.setItem('stocks', JSON.stringify(stocks));
+  localStorage.setItem('yesugeum', JSON.stringify(yesugeum));
+}
+
+function fmt(n) {
+  if (!n && n !== 0) return '—';
+  return '₩' + Math.round(n).toLocaleString('ko-KR');
+}
+
+function fmtRate(r) {
+  return r ? r.toFixed(2) + '%' : '';
+}
+
+// ── INTEREST CALC ──
+function calcAnnualInterest(d) {
+  if (!d.amount || !d.rate || !d.start || !d.end) return 0;
+  const s = new Date(d.start);
+  const e = new Date(d.end);
+  const days = (e - s) / 86400000;
+  if (days <= 0) return 0;
+  const years = days / 365;
+  return d.amount * (d.rate / 100) * years;
+}
+
+// ── RENDER ──
+function render() {
+  renderDeposits();
+  renderStocks();
+  renderSummary();
+  renderInterest();
+}
+
+function renderDeposits() {
+  const list = document.getElementById('depositList');
+  if (!deposits.length) {
+    list.innerHTML = '<div class="empty-state">예금 항목이 없습니다</div>';
+    return;
+  }
+  list.innerHTML = deposits.map(d => {
+    const isOpen = openDepositId === d.id;
+    const interest = calcAnnualInterest(d);
+    const today = new Date();
+    const end = d.end ? new Date(d.end) : null;
+    let statusClass = 'status-active';
+    let statusLabel = '운용중';
+    if (d.matured) { statusClass = 'status-mature'; statusLabel = '만기완료'; }
+    else if (end && end < today) { statusClass = 'status-expired'; statusLabel = '만기경과'; }
+
+    return `
+    <div class="deposit-item ${d.matured ? 'dep-matured' : ''}">
+      <div class="deposit-summary ${isOpen ? 'active' : ''}" onclick="toggleDeposit('${d.id}')">
+        <div>
+          <div class="dep-name">${d.name} <span class="dep-status ${statusClass}">${statusLabel}</span></div>
+          <div class="dep-bank">${d.bank || ''} ${d.rate ? '· ' + fmtRate(d.rate) : ''} ${d.end ? '· ' + d.end + ' 만기' : ''}</div>
+        </div>
+        <div class="dep-amount">${fmt(d.amount)}</div>
+        <div class="dep-chevron">▾</div>
+      </div>
+      <div class="deposit-detail ${isOpen ? 'open' : ''}">
+        <div class="detail-inner">
+          <div class="detail-field">
+            <label>예금 이름</label>
+            <input type="text" value="${d.name}" onchange="updateDeposit('${d.id}','name',this.value)" />
+          </div>
+          <div class="detail-field">
+            <label>은행</label>
+            <input type="text" value="${d.bank || ''}" onchange="updateDeposit('${d.id}','bank',this.value)" />
+          </div>
+          <div class="detail-field">
+            <label>금액 (원)</label>
+            <input type="number" value="${d.amount || ''}" onchange="updateDeposit('${d.id}','amount',+this.value)" />
+          </div>
+          <div class="detail-field">
+            <label>연이율 (%)</label>
+            <input type="number" step="0.01" value="${d.rate || ''}" onchange="updateDeposit('${d.id}','rate',+this.value)" />
+          </div>
+          <div class="detail-field">
+            <label>가입일</label>
+            <input type="date" value="${d.start || ''}" onchange="updateDeposit('${d.id}','start',this.value)" />
+          </div>
+          <div class="detail-field">
+            <label>만기일</label>
+            <input type="date" value="${d.end || ''}" onchange="updateDeposit('${d.id}','end',this.value)" />
+          </div>
+          <div class="detail-field full">
+            <label>이자 지급 방식</label>
+            <select onchange="updateDeposit('${d.id}','paytype',this.value)">
+              <option value="maturity" ${d.paytype === 'maturity' ? 'selected' : ''}>만기일시지급</option>
+              <option value="monthly" ${d.paytype === 'monthly' ? 'selected' : ''}>월이자지급</option>
+              <option value="quarterly" ${d.paytype === 'quarterly' ? 'selected' : ''}>분기이자지급</option>
+            </select>
+          </div>
+        </div>
+        <div class="detail-actions">
+          <button class="btn-delete" onclick="deleteDeposit('${d.id}')">삭제</button>
+          <button class="btn-mature" onclick="toggleMature('${d.id}')">${d.matured ? '활성화' : '만기 처리'}</button>
+          <button class="btn-save" onclick="saveDepositInline('${d.id}')">저장</button>
+          <button class="btn-mature" style="background:var(--accent);font-size:0.68rem;" onclick="depSendToYg('${d.id}')">→ 예수금</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderStocks() {
+  const list = document.getElementById('stockList');
+  if (!stocks.length) {
+    list.innerHTML = '<div class="empty-state">주식/ETF 항목이 없습니다</div>';
+    return;
+  }
+  list.innerHTML = stocks.map(s => {
+    const total = (s.entries || []).reduce((acc, e) => acc + e.amount, 0);
+    const isEditing = editingStockId === s.id;
+    return `
+    <div>
+      <div class="stock-item">
+        <div>
+          <div class="stock-name">${s.name}</div>
+          <div class="stock-type">${s.type}</div>
+          <div class="stock-entries">
+            ${(s.entries || []).map(e => `
+              <div class="stock-entry ${e.amount < 0 ? 'entry-out' : ''}">
+                <span class="entry-date">${e.date}</span>
+                <span class="entry-amt ${e.amount < 0 ? 'amt-neg' : ''}">${e.amount < 0 ? '-' : ''}${fmt(Math.abs(e.amount))}</span>
+                ${e.note ? `<span class="entry-note">${e.note}</span>` : ''}
+                <button class="btn-del-entry" onclick="deleteStockEntry('${s.id}','${e.id}')" title="삭제">×</button>
+              </div>
+            `).join('')}
+          </div>
+          <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">
+            <button class="btn-add" style="font-size:0.68rem;" onclick="toggleStockEntry('${s.id}')">+ 입금</button>
+            ${stocks.length > 1 ? `<button class="btn-transfer" onclick="openTransfer('${s.id}')">⇄ 이체</button>` : ''}
+          </div>
+        </div>
+        <div class="stock-total">
+          <div class="t-label">평가 잔액</div>
+          <div class="t-amt">${fmt(total)}</div>
+          <button class="btn-delete" style="margin-top:10px;font-size:0.66rem;" onclick="deleteStock('${s.id}')">계좌 삭제</button>
+        </div>
+      </div>
+      <div class="stock-add-form ${isEditing ? 'open' : ''}" id="stock-form-${s.id}">
+        <div class="stock-form-row">
+          <div class="detail-field">
+            <label>날짜</label>
+            <input type="date" id="se-date-${s.id}" />
+          </div>
+          <div class="detail-field">
+            <label>금액 (원)</label>
+            <input type="number" id="se-amt-${s.id}" placeholder="1000000" />
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;">
+          <button class="btn-cancel" onclick="toggleStockEntry('${s.id}')">취소</button>
+          <button class="btn-save-stock" onclick="addStockEntry('${s.id}')">추가</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderSummary() {
+  const depTotal = deposits.filter(d => !d.matured).reduce((a, d) => a + (d.amount || 0), 0);
+  const matTotal = deposits.filter(d => d.matured).reduce((a, d) => a + (d.amount || 0), 0);
+  const stTotal = stocks.reduce((a, s) => a + (s.entries || []).reduce((b, e) => b + e.amount, 0), 0);
+  const totalInterest = deposits.reduce((a, d) => a + calcAnnualInterest(d), 0);
+
+  const ygTotal = yesugeum.reduce((a, e) => a + e.amount, 0);
+  document.getElementById('sumDeposit').textContent = fmt(depTotal + matTotal);
+  document.getElementById('depositTotal').textContent = fmt(depTotal + matTotal);
+  document.getElementById('sumStock').textContent = fmt(stTotal);
+  document.getElementById('stockTotal').textContent = fmt(stTotal);
+  document.getElementById('sumInterest').textContent = fmt(totalInterest);
+  document.getElementById('sumYesugeum').textContent = fmt(ygTotal);
+  document.getElementById('yesugeumAmt').textContent = fmt(ygTotal);
+  document.getElementById('totalAsset').textContent = fmt(depTotal + matTotal + stTotal + ygTotal);
+}
+
+function renderInterest() {
+  const rows = document.getElementById('interestRows');
+  if (!deposits.length) {
+    rows.innerHTML = '<div class="empty-state">예금 데이터를 입력하면 이자가 계산됩니다</div>';
+    return;
+  }
+  let total = 0;
+  const items = deposits.map(d => {
+    const interest = calcAnnualInterest(d);
+    total += interest;
+    const s = d.start ? new Date(d.start) : null;
+    const e = d.end ? new Date(d.end) : null;
+    const days = (s && e) ? Math.round((e - s) / 86400000) : 0;
+    return `
+    <div class="interest-row">
+      <div>
+        <div class="ir-name">${d.name}</div>
+        <div class="ir-detail">${fmt(d.amount)} × ${fmtRate(d.rate)} × ${days}일</div>
+      </div>
+      <div class="ir-interest">${fmt(interest)}</div>
+    </div>`;
+  }).join('');
+
+  rows.innerHTML = items + `
+  <div class="interest-total-row">
+    <div class="label">연간 이자 합계 (세전)</div>
+    <div class="val">${fmt(total)}</div>
+  </div>
+  <div style="font-size:0.64rem;color:var(--text-muted);margin-top:6px;text-align:right;">
+    세후 (이자소득세 15.4% 적용): ${fmt(total * 0.846)}
+  </div>`;
+}
+
+// ── TOGGLE DEPOSIT ──
+function toggleDeposit(id) {
+  openDepositId = openDepositId === id ? null : id;
+  render();
+}
+
+// ── UPDATE DEPOSIT FIELD (inline) ──
+function updateDeposit(id, key, val) {
+  const d = deposits.find(x => x.id === id);
+  if (d) d[key] = val;
+}
+
+function saveDepositInline(id) {
+  save();
+  render();
+}
+
+function toggleMature(id) {
+  const d = deposits.find(x => x.id === id);
+  if (d) d.matured = !d.matured;
+  save(); render();
+}
+
+function deleteDeposit(id) {
+  if (!confirm('삭제하시겠습니까?')) return;
+  deposits = deposits.filter(x => x.id !== id);
+  openDepositId = null;
+  save(); render();
+}
+
+// ── DEPOSIT MODAL ──
+function openDepositModal() {
+  document.getElementById('d-name').value = '';
+  document.getElementById('d-bank').value = '';
+  document.getElementById('d-amount').value = '';
+  document.getElementById('d-start').value = new Date().toISOString().slice(0,10);
+  document.getElementById('d-end').value = '';
+  document.getElementById('d-rate').value = '';
+  document.getElementById('depositModal').classList.add('open');
+}
+function closeDepositModal() {
+  document.getElementById('depositModal').classList.remove('open');
+}
+function saveDeposit() {
+  const name = document.getElementById('d-name').value.trim();
+  if (!name) { alert('이름을 입력하세요'); return; }
+  deposits.push({
+    id: uid(),
+    name,
+    bank: document.getElementById('d-bank').value.trim(),
+    amount: +document.getElementById('d-amount').value || 0,
+    start: document.getElementById('d-start').value,
+    end: document.getElementById('d-end').value,
+    rate: +document.getElementById('d-rate').value || 0,
+    paytype: document.getElementById('d-paytype').value,
+    matured: false
+  });
+  save(); render(); closeDepositModal();
+}
+
+// ── STOCK MODAL ──
+function openStockModal() {
+  document.getElementById('s-name').value = '';
+  document.getElementById('s-type').value = 'ETF';
+  document.getElementById('s-date').value = new Date().toISOString().slice(0,10);
+  document.getElementById('s-amount').value = '';
+  document.getElementById('stockModal').classList.add('open');
+}
+function closeStockModal() {
+  document.getElementById('stockModal').classList.remove('open');
+}
+function saveStock() {
+  const name = document.getElementById('s-name').value.trim();
+  if (!name) { alert('이름을 입력하세요'); return; }
+  const amount = +document.getElementById('s-amount').value || 0;
+  const date = document.getElementById('s-date').value;
+  stocks.push({
+    id: uid(),
+    name,
+    type: document.getElementById('s-type').value,
+    entries: amount > 0 ? [{ id: uid(), date, amount }] : []
+  });
+  save(); render(); closeStockModal();
+}
+
+// ── STOCK ENTRIES ──
+function toggleStockEntry(id) {
+  editingStockId = editingStockId === id ? null : id;
+  render();
+  if (editingStockId) {
+    document.getElementById('se-date-' + id).value = new Date().toISOString().slice(0,10);
+  }
+}
+
+function addStockEntry(id) {
+  const date = document.getElementById('se-date-' + id).value;
+  const amount = +document.getElementById('se-amt-' + id).value;
+  if (!amount) { alert('금액을 입력하세요'); return; }
+  const s = stocks.find(x => x.id === id);
+  if (s) { s.entries = s.entries || []; s.entries.push({ id: uid(), date, amount }); }
+  editingStockId = null;
+  save(); render();
+}
+
+function deleteStockEntry(sid, eid) {
+  const s = stocks.find(x => x.id === sid);
+  if (s) s.entries = s.entries.filter(e => e.id !== eid);
+  save(); render();
+}
+
+function deleteStock(id) {
+  if (!confirm('계좌를 삭제하시겠습니까?')) return;
+  stocks = stocks.filter(x => x.id !== id);
+  save(); render();
+}
+
+// ── MODAL CLOSE ON OVERLAY ──
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
+});
+
+// ── INIT ──
+render();
+</script>
+</body>
+</html>
