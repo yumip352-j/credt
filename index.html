@@ -488,6 +488,7 @@
   }
   .modal-form input, .modal-form select {
     width: 100%;
+    min-width: 0;
     background: var(--bg2);
     border: 1px solid var(--border);
     border-radius: 2px;
@@ -545,6 +546,8 @@
   .period-btn {
     background: var(--bg2);
     white-space: nowrap;
+    width: auto !important;
+    flex-shrink: 0;
     border: 1px solid var(--border);
     color: var(--text-sub);
     font-family: 'DM Mono', monospace;
@@ -1103,7 +1106,13 @@ function renderDeposits() {
     list.innerHTML = '<div class="empty-state">예금 항목이 없습니다</div>';
     return;
   }
-  list.innerHTML = deposits.map(d => {
+  const sorted = [...deposits].sort((a, b) => {
+    if (!a.end && !b.end) return 0;
+    if (!a.end) return 1;
+    if (!b.end) return -1;
+    return a.end.localeCompare(b.end);
+  });
+  list.innerHTML = sorted.map(d => {
     const isOpen = openDepositId === d.id;
     const interest = calcAnnualInterest(d);
     const today = new Date();
