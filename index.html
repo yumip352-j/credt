@@ -538,6 +538,22 @@
   /* matured overlay */
   .dep-matured .dep-name { text-decoration: line-through; opacity: 0.6; }
 
+  /* period buttons */
+  .period-btn {
+    flex: 1;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    color: var(--text-sub);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    padding: 4px 0;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.12s;
+  }
+  .period-btn:hover { border-color: var(--deposit); color: var(--deposit); background: var(--deposit-light); }
+  .period-btn.active { background: var(--deposit); color: #fff; border-color: var(--deposit); }
+
   /* yesugeum header */
   .header-yesugeum .label {
     font-size: 0.65rem;
@@ -697,7 +713,13 @@
       </div>
       <div>
         <label>만기일</label>
-        <input type="date" id="d-end" />
+        <input type="date" id="d-end" oninput="clearPeriodBtn()" />
+        <div style="display:flex;gap:5px;margin-top:6px;">
+          <button type="button" class="period-btn" id="pb-3" onclick="setPeriod(3)">3개월</button>
+          <button type="button" class="period-btn" id="pb-6" onclick="setPeriod(6)">6개월</button>
+          <button type="button" class="period-btn" id="pb-12" onclick="setPeriod(12)">1년</button>
+          <button type="button" class="period-btn" id="pb-24" onclick="setPeriod(24)">2년</button>
+        </div>
       </div>
       <div>
         <label>연이율 (%)</label>
@@ -1271,6 +1293,19 @@ function deleteDeposit(id) {
 }
 
 // ── DEPOSIT MODAL ──
+function setPeriod(months) {
+  const start = document.getElementById('d-start').value;
+  if (!start) { alert('가입일을 먼저 입력하세요'); return; }
+  const d = new Date(start);
+  d.setMonth(d.getMonth() + months);
+  document.getElementById('d-end').value = d.toISOString().slice(0,10);
+  // 버튼 active 표시
+  document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('pb-' + (months === 12 ? 12 : months === 24 ? 24 : months)).classList.add('active');
+}
+function clearPeriodBtn() {
+  document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+}
 function openDepositModal() {
   document.getElementById('d-name').value = '';
   document.getElementById('d-bank').value = '';
@@ -1278,6 +1313,7 @@ function openDepositModal() {
   document.getElementById('d-start').value = new Date().toISOString().slice(0,10);
   document.getElementById('d-end').value = '';
   document.getElementById('d-rate').value = '';
+  document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('depositModal').classList.add('open');
 }
 function closeDepositModal() {
