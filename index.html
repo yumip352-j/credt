@@ -430,6 +430,7 @@
     padding: 8px 14px;
     background: var(--bg2);
     border-radius: 2px;
+    gap: 16px;
   }
   .ir-name { font-size: 0.82rem; }
   .ir-detail { font-size: 0.68rem; color: var(--text-muted); margin-top: 2px; font-family: 'DM Mono', monospace; }
@@ -642,6 +643,16 @@
   <div class="sum-item" style="cursor:pointer;" onclick="openYesugeumModal()">
     <div class="s-label" style="color:#7a6f66;">예수금</div>
     <div class="s-val" id="sumYesugeum" style="color:#8a6a3a;">—</div>
+  </div>
+  <div class="sum-divider"></div>
+  <div class="sum-item">
+    <div class="s-label" style="color:#7a6f66;">올해 신규 예금</div>
+    <div class="s-val" id="sumNewDeposit" style="color:var(--deposit);">—</div>
+  </div>
+  <div class="sum-divider"></div>
+  <div class="sum-item">
+    <div class="s-label" style="color:#7a6f66;">올해 신규 주식</div>
+    <div class="s-val" id="sumNewStock" style="color:var(--stock);">—</div>
   </div>
 </div>
 
@@ -1229,6 +1240,18 @@ function renderSummary() {
   document.getElementById('sumYesugeum').textContent = fmt(ygTotal);
   document.getElementById('yesugeumAmt').textContent = fmt(ygTotal);
   document.getElementById('totalAsset').textContent = fmt(depTotal + matTotal + stTotal + ygTotal);
+
+  // 올해 신규
+  const thisYear = new Date().getFullYear().toString();
+  const newDepTotal = deposits
+    .filter(d => d.start && d.start.startsWith(thisYear))
+    .reduce((a, d) => a + (d.amount || 0), 0);
+  const newStTotal = stocks.reduce((a, s) =>
+    a + (s.entries || [])
+      .filter(e => e.amount > 0 && e.date && e.date.startsWith(thisYear))
+      .reduce((b, e) => b + e.amount, 0), 0);
+  document.getElementById('sumNewDeposit').textContent = newDepTotal ? fmt(newDepTotal) : '—';
+  document.getElementById('sumNewStock').textContent = newStTotal ? fmt(newStTotal) : '—';
 }
 
 function renderInterest() {
@@ -1245,29 +1268,23 @@ function renderInterest() {
     const e = d.end ? new Date(d.end) : null;
     const days = (s && e) ? Math.round((e - s) / 86400000) : 0;
     const interestAfter = interest * 0.846;
-    const maturity = (d.amount || 0) + interestAfter;
     return `
     <div class="interest-row">
-      <div>
-        <div class="ir-name">${d.name}</div>
-        <div class="ir-detail">${fmt(d.amount)} × ${fmtRate(d.rate)} × ${days}일</div>
-      </div>
-      <div style="text-align:right;">
-        <div class="ir-interest">${fmt(interest)}<span class="ir-after"> → 세후 ${fmt(interestAfter)}</span></div>
-        <div class="ir-maturity">만기수령 ${fmt(maturity)}</div>
+      <div class="ir-name">${d.name}</div>
+      <div style="display:flex;gap:24px;align-items:center;margin-top:0;">
+        <span class="ir-detail" style="margin:0;">${fmt(d.amount)}</span>
+        <span class="ir-interest">${fmt(Math.round(interest))}</span>
+        <span style="font-family:'DM Mono',monospace;font-size:0.82rem;color:var(--text-sub);">/ ${fmt(Math.round(interestAfter))}</span>
       </div>
     </div>`;
   }).join('');
 
   const totalAfter = total * 0.846;
-  const totalMaturity = deposits.reduce((a, d) => a + (d.amount || 0), 0) + totalAfter;
   rows.innerHTML = items + `
   <div class="interest-total-row">
-    <div class="label">이자 합계 (세전)</div>
+    <div class="label">이자 합계</div>
     <div style="text-align:right;">
-      <div class="val">${fmt(total)}</div>
-      <div style="font-size:0.72rem;color:var(--accent);margin-top:2px;">세후 ${fmt(totalAfter)}</div>
-      <div style="font-size:0.68rem;color:var(--text-sub);margin-top:4px;font-family:'DM Mono',monospace;">만기수령 합계 ${fmt(totalMaturity)}</div>
+      <div class="val">${fmt(Math.round(total))} <span style="font-size:0.8rem;font-weight:400;">/ 세후 ${fmt(Math.round(totalAfter))}</span></div>
     </div>
   </div>`;
 }
