@@ -1279,8 +1279,11 @@ function renderInterest() {
     const interestAfter = interest * 0.846;
     return `
     <div class="interest-row">
-      <div class="ir-name">${d.name}</div>
-      <div style="display:flex;gap:24px;align-items:center;margin-top:0;">
+      <div>
+        <div class="ir-name">${d.name}</div>
+        ${d.end ? `<div style="font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--text-muted);margin-top:2px;">${d.end} 만기</div>` : ''}
+      </div>
+      <div style="display:flex;gap:24px;align-items:center;">
         <span class="ir-detail" style="margin:0;">${fmt(d.amount)}</span>
         <span class="ir-interest">${fmt(Math.round(interest))}</span>
         <span style="font-family:'DM Mono',monospace;font-size:0.82rem;color:var(--text-sub);">/ ${fmt(Math.round(interestAfter))}</span>
