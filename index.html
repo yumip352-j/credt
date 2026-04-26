@@ -434,6 +434,8 @@
   .ir-name { font-size: 0.82rem; }
   .ir-detail { font-size: 0.68rem; color: var(--text-muted); margin-top: 2px; font-family: 'DM Mono', monospace; }
   .ir-interest { font-family: 'DM Mono', monospace; font-size: 0.88rem; color: var(--accent); font-weight: 500; }
+  .ir-after { font-size: 0.75rem; color: var(--accent); opacity: 0.75; font-weight: 400; }
+  .ir-maturity { font-family: 'DM Mono', monospace; font-size: 0.75rem; color: var(--text-sub); margin-top: 2px; }
   .interest-total-row {
     margin-top: 8px;
     padding: 10px 14px;
@@ -1242,23 +1244,31 @@ function renderInterest() {
     const s = d.start ? new Date(d.start) : null;
     const e = d.end ? new Date(d.end) : null;
     const days = (s && e) ? Math.round((e - s) / 86400000) : 0;
+    const interestAfter = interest * 0.846;
+    const maturity = (d.amount || 0) + interestAfter;
     return `
     <div class="interest-row">
       <div>
         <div class="ir-name">${d.name}</div>
         <div class="ir-detail">${fmt(d.amount)} × ${fmtRate(d.rate)} × ${days}일</div>
       </div>
-      <div class="ir-interest">${fmt(interest)}</div>
+      <div style="text-align:right;">
+        <div class="ir-interest">${fmt(interest)}<span class="ir-after"> → 세후 ${fmt(interestAfter)}</span></div>
+        <div class="ir-maturity">만기수령 ${fmt(maturity)}</div>
+      </div>
     </div>`;
   }).join('');
 
+  const totalAfter = total * 0.846;
+  const totalMaturity = deposits.reduce((a, d) => a + (d.amount || 0), 0) + totalAfter;
   rows.innerHTML = items + `
   <div class="interest-total-row">
-    <div class="label">연간 이자 합계 (세전)</div>
-    <div class="val">${fmt(total)}</div>
-  </div>
-  <div style="font-size:0.64rem;color:var(--text-muted);margin-top:6px;text-align:right;">
-    세후 (이자소득세 15.4% 적용): ${fmt(total * 0.846)}
+    <div class="label">이자 합계 (세전)</div>
+    <div style="text-align:right;">
+      <div class="val">${fmt(total)}</div>
+      <div style="font-size:0.72rem;color:var(--accent);margin-top:2px;">세후 ${fmt(totalAfter)}</div>
+      <div style="font-size:0.68rem;color:var(--text-sub);margin-top:4px;font-family:'DM Mono',monospace;">만기수령 합계 ${fmt(totalMaturity)}</div>
+    </div>
   </div>`;
 }
 
