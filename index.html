@@ -542,6 +542,59 @@
   /* matured overlay */
   .dep-matured .dep-name { text-decoration: line-through; opacity: 0.6; }
 
+  /* income grid */
+  .income-month-row {
+    display: grid;
+    grid-template-columns: 64px 1fr 1fr 1fr 80px;
+    gap: 8px;
+    align-items: center;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border-light);
+  }
+  .income-month-row:last-child { border-bottom: none; }
+  .income-month-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+  .income-input {
+    background: var(--bg2);
+    border: 1px solid var(--border-light);
+    border-radius: 2px;
+    padding: 5px 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--text);
+    outline: none;
+    width: 100%;
+    transition: border-color 0.12s;
+    text-align: right;
+  }
+  .income-input:focus { border-color: #7a6a8a; }
+  .income-row-total {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    color: #7a6a8a;
+    font-weight: 500;
+    text-align: right;
+  }
+  .income-header-row {
+    display: grid;
+    grid-template-columns: 64px 1fr 1fr 1fr 80px;
+    gap: 8px;
+    padding: 0 0 8px;
+    border-bottom: 2px solid var(--border);
+    margin-bottom: 4px;
+  }
+  .income-header-row span {
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    text-align: right;
+  }
+  .income-header-row span:first-child { text-align: left; }
+
   /* period buttons */
   .period-btn {
     background: var(--bg2);
@@ -704,6 +757,21 @@
     </div>
   </div>
 
+  <!-- INCOME SECTION -->
+  <div class="section-card" style="grid-column:1/-1;">
+    <div class="section-header">
+      <div class="section-title">
+        <div class="sec-dot" style="background:#7a6a8a;"></div>
+        <h2>월별 수입</h2>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <span class="section-total" id="incomeYearTotal">—</span>
+        <select id="incomeYearSel" onchange="renderIncome()" style="background:var(--bg2);border:1px solid var(--border);border-radius:2px;padding:5px 10px;font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--text);outline:none;cursor:pointer;"></select>
+      </div>
+    </div>
+    <div id="incomeGrid" style="padding:16px 24px;"></div>
+  </div>
+
 </main>
 
 <!-- DEPOSIT MODAL -->
@@ -855,7 +923,8 @@
 // ── STATE ──
 let deposits = JSON.parse(localStorage.getItem('deposits') || '[]');
 let stocks = JSON.parse(localStorage.getItem('stocks') || '[]');
-let yesugeum = JSON.parse(localStorage.getItem('yesugeum') || '[]'); // [{id,date,amount,note}]
+let yesugeum = JSON.parse(localStorage.getItem('yesugeum') || '[]');
+let income = JSON.parse(localStorage.getItem('income') || '{}'); // {YYYY-MM: {salary, side, extra}} // [{id,date,amount,note}]
 let openDepositId = null;
 let editingStockId = null;
 
@@ -1070,6 +1139,7 @@ function save() {
   localStorage.setItem('deposits', JSON.stringify(deposits));
   localStorage.setItem('stocks', JSON.stringify(stocks));
   localStorage.setItem('yesugeum', JSON.stringify(yesugeum));
+  localStorage.setItem('income', JSON.stringify(income));
 }
 
 function fmt(n) {
@@ -1098,6 +1168,7 @@ function render() {
   renderStocks();
   renderSummary();
   renderInterest();
+  renderIncome();
 }
 
 function renderDeposits() {
@@ -1185,49 +1256,85 @@ function renderStocks() {
     return;
   }
   list.innerHTML = stocks.map(s => {
-    const total = (s.entries || []).reduce((acc, e) => acc + e.amount, 0);
     const isEditing = editingStockId === s.id;
+    // 연도별 매수/매도 집계
+    const byYear = {};
+    (s.entries || []).forEach(e => {
+      if (!e.date) return;
+      const yr = e.date.slice(0,4);
+      if (!byYear[yr]) byYear[yr] = { buy: 0, sell: 0 };
+      if (e.amount > 0) byYear[yr].buy += e.amount;
+      else byYear[yr].sell += Math.abs(e.amount);
+    });
+    const years = Object.keys(byYear).sort().reverse();
     return `
     <div>
       <div class="stock-item">
-        <div>
-          <div class="stock-name">${s.name}</div>
-          <div class="stock-type">${s.type}</div>
-          <div class="stock-entries">
+        <div style="width:100%;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+            <div>
+              <div class="stock-name">${s.name}</div>
+              <div class="stock-type">${s.type}</div>
+            </div>
+            <button class="btn-delete" style="font-size:0.66rem;margin-top:2px;" onclick="deleteStock('${s.id}')">계좌 삭제</button>
+          </div>
+          <!-- 연도별 요약 -->
+          <div style="margin-top:10px;display:flex;flex-direction:column;gap:4px;">
+            ${years.length ? years.map(yr => `
+              <div style="display:flex;align-items:center;gap:16px;font-family:'DM Mono',monospace;font-size:0.78rem;">
+                <span style="color:var(--text-muted);min-width:36px;">${yr}</span>
+                <span style="color:var(--stock);">매수 ${fmt(byYear[yr].buy)}</span>
+                ${byYear[yr].sell ? `<span style="color:var(--danger);">매도 ${fmt(byYear[yr].sell)}</span>` : ''}
+              </div>`).join('') : '<div style="font-size:0.75rem;color:var(--text-muted);">내역 없음</div>'}
+          </div>
+          <!-- 개별 내역 -->
+          <div class="stock-entries" style="margin-top:8px;">
             ${(s.entries || []).map(e => `
               <div class="stock-entry ${e.amount < 0 ? 'entry-out' : ''}">
                 <span class="entry-date">${e.date}</span>
-                <span class="entry-amt ${e.amount < 0 ? 'amt-neg' : ''}">${e.amount < 0 ? '-' : ''}${fmt(Math.abs(e.amount))}</span>
+                <span class="entry-amt ${e.amount < 0 ? 'amt-neg' : ''}">${e.amount < 0 ? '▼' : '▲'} ${fmt(Math.abs(e.amount))}</span>
                 ${e.note ? `<span class="entry-note">${e.note}</span>` : ''}
                 <button class="btn-del-entry" onclick="deleteStockEntry('${s.id}','${e.id}')" title="삭제">×</button>
               </div>
             `).join('')}
           </div>
           <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">
-            <button class="btn-add" style="font-size:0.68rem;" onclick="toggleStockEntry('${s.id}')">+ 입금</button>
+            <button class="btn-add" style="font-size:0.68rem;" onclick="toggleStockEntry('${s.id}')">+ 매수</button>
+            <button class="btn-transfer" style="color:var(--danger);border-color:var(--danger);" onclick="toggleStockSell('${s.id}')">- 매도</button>
             ${stocks.length > 1 ? `<button class="btn-transfer" onclick="openTransfer('${s.id}')">⇄ 이체</button>` : ''}
           </div>
         </div>
-        <div class="stock-total">
-          <div class="t-label">평가 잔액</div>
-          <div class="t-amt">${fmt(total)}</div>
-          <button class="btn-delete" style="margin-top:10px;font-size:0.66rem;" onclick="deleteStock('${s.id}')">계좌 삭제</button>
-        </div>
       </div>
-      <div class="stock-add-form ${isEditing ? 'open' : ''}" id="stock-form-${s.id}">
+      <div class="stock-add-form ${isEditing === s.id + '_buy' ? 'open' : ''}" id="stock-form-${s.id}">
         <div class="stock-form-row">
           <div class="detail-field">
-            <label>날짜</label>
+            <label>매수일</label>
             <input type="date" id="se-date-${s.id}" />
           </div>
           <div class="detail-field">
-            <label>금액 (원)</label>
+            <label>매수 금액 (원)</label>
             <input type="number" id="se-amt-${s.id}" placeholder="1000000" />
           </div>
         </div>
         <div style="display:flex;gap:8px;justify-content:flex-end;">
           <button class="btn-cancel" onclick="toggleStockEntry('${s.id}')">취소</button>
-          <button class="btn-save-stock" onclick="addStockEntry('${s.id}')">추가</button>
+          <button class="btn-save-stock" onclick="addStockEntry('${s.id}', 1)">매수 추가</button>
+        </div>
+      </div>
+      <div class="stock-add-form ${isEditing === s.id + '_sell' ? 'open' : ''}" id="stock-sell-form-${s.id}" style="background:var(--danger-light);border-top:1px solid #e0c0c0;">
+        <div class="stock-form-row">
+          <div class="detail-field">
+            <label>매도일</label>
+            <input type="date" id="ss-date-${s.id}" />
+          </div>
+          <div class="detail-field">
+            <label>매도 금액 (원)</label>
+            <input type="number" id="ss-amt-${s.id}" placeholder="1000000" />
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;">
+          <button class="btn-cancel" onclick="toggleStockSell('${s.id}')">취소</button>
+          <button class="btn-save-stock" style="background:var(--danger);" onclick="addStockEntry('${s.id}', -1)">매도 추가</button>
         </div>
       </div>
     </div>`;
@@ -1237,7 +1344,7 @@ function renderStocks() {
 function renderSummary() {
   const depTotal = deposits.filter(d => !d.matured).reduce((a, d) => a + (d.amount || 0), 0);
   const matTotal = deposits.filter(d => d.matured).reduce((a, d) => a + (d.amount || 0), 0);
-  const stTotal = stocks.reduce((a, s) => a + (s.entries || []).reduce((b, e) => b + e.amount, 0), 0);
+  const stTotal = stocks.reduce((a, s) => a + (s.entries || []).filter(e => e.amount > 0).reduce((b, e) => b + e.amount, 0), 0);
   const totalInterest = deposits.reduce((a, d) => a + calcAnnualInterest(d), 0);
 
   const ygTotal = yesugeum.reduce((a, e) => a + e.amount, 0);
@@ -1299,6 +1406,81 @@ function renderInterest() {
       <div class="val">${fmt(Math.round(total))} <span style="font-size:0.8rem;font-weight:400;">/ 세후 ${fmt(Math.round(totalAfter))}</span></div>
     </div>
   </div>`;
+}
+
+
+// ── INCOME ──
+function getIncomeYears() {
+  const thisYear = new Date().getFullYear();
+  const years = new Set([thisYear, thisYear - 1]);
+  Object.keys(income).forEach(k => years.add(+k.slice(0,4)));
+  return [...years].sort((a,b) => b - a);
+}
+
+function renderIncome() {
+  const sel = document.getElementById('incomeYearSel');
+  const years = getIncomeYears();
+  const curVal = sel.value || new Date().getFullYear().toString();
+  sel.innerHTML = years.map(y => `<option value="${y}" ${y == curVal ? 'selected' : ''}>${y}년</option>`).join('');
+  const year = sel.value;
+
+  let yearTotal = 0;
+  const months = Array.from({length:12}, (_,i) => String(i+1).padStart(2,'0'));
+
+  const grid = document.getElementById('incomeGrid');
+  grid.innerHTML = `
+    <div class="income-header-row">
+      <span>월</span>
+      <span>월급</span>
+      <span>포타 (부업)</span>
+      <span>기타수입</span>
+      <span>합계</span>
+    </div>` +
+    months.map(m => {
+      const key = `${year}-${m}`;
+      const d = income[key] || {};
+      const salary = d.salary || 0;
+      const side = d.side || 0;
+      const extra = d.extra || 0;
+      const total = salary + side + extra;
+      yearTotal += total;
+      return `
+      <div class="income-month-row">
+        <div class="income-month-label">${+m}월</div>
+        <input class="income-input" type="number" placeholder="0"
+          value="${salary || ''}"
+          onchange="saveIncome('${key}','salary',+this.value)" />
+        <input class="income-input" type="number" placeholder="0"
+          value="${side || ''}"
+          onchange="saveIncome('${key}','side',+this.value)" />
+        <input class="income-input" type="number" placeholder="0"
+          value="${extra || ''}"
+          onchange="saveIncome('${key}','extra',+this.value)" />
+        <div class="income-row-total">${total ? fmt(total) : '—'}</div>
+      </div>`;
+    }).join('');
+
+  document.getElementById('incomeYearTotal').textContent = yearTotal ? fmt(yearTotal) + ' / 년' : '—';
+}
+
+function saveIncome(key, field, val) {
+  if (!income[key]) income[key] = {};
+  income[key][field] = val;
+  // 합계 즉시 업데이트
+  const d = income[key];
+  const total = (d.salary || 0) + (d.side || 0) + (d.extra || 0);
+  const row = event.target.closest('.income-month-row');
+  if (row) row.querySelector('.income-row-total').textContent = total ? fmt(total) : '—';
+  // 연간 합계 재계산
+  const year = key.slice(0,4);
+  let yearTotal = 0;
+  for (let m = 1; m <= 12; m++) {
+    const k = year + '-' + String(m).padStart(2,'0');
+    const x = income[k] || {};
+    yearTotal += (x.salary || 0) + (x.side || 0) + (x.extra || 0);
+  }
+  document.getElementById('incomeYearTotal').textContent = yearTotal ? fmt(yearTotal) + ' / 년' : '—';
+  save();
 }
 
 // ── TOGGLE DEPOSIT ──
@@ -1402,19 +1584,31 @@ function saveStock() {
 
 // ── STOCK ENTRIES ──
 function toggleStockEntry(id) {
-  editingStockId = editingStockId === id ? null : id;
+  const key = id + '_buy';
+  editingStockId = editingStockId === key ? null : key;
   render();
   if (editingStockId) {
     document.getElementById('se-date-' + id).value = new Date().toISOString().slice(0,10);
   }
 }
+function toggleStockSell(id) {
+  const key = id + '_sell';
+  editingStockId = editingStockId === key ? null : key;
+  render();
+  if (editingStockId) {
+    document.getElementById('ss-date-' + id).value = new Date().toISOString().slice(0,10);
+  }
+}
 
-function addStockEntry(id) {
-  const date = document.getElementById('se-date-' + id).value;
-  const amount = +document.getElementById('se-amt-' + id).value;
+function addStockEntry(id, sign = 1) {
+  const isSell = sign < 0;
+  const dateEl = document.getElementById(isSell ? 'ss-date-' + id : 'se-date-' + id);
+  const amtEl = document.getElementById(isSell ? 'ss-amt-' + id : 'se-amt-' + id);
+  const date = dateEl.value;
+  const amount = +amtEl.value;
   if (!amount) { alert('금액을 입력하세요'); return; }
   const s = stocks.find(x => x.id === id);
-  if (s) { s.entries = s.entries || []; s.entries.push({ id: uid(), date, amount }); }
+  if (s) { s.entries = s.entries || []; s.entries.push({ id: uid(), date, amount: amount * sign }); }
   editingStockId = null;
   save(); render();
 }
