@@ -1245,6 +1245,7 @@ function renderStocks() {
           <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">
             <button class="btn-add" style="font-size:0.68rem;" onclick="toggleStockEntry('${s.id}')">+ 매수</button>
             <button class="btn-transfer" style="color:var(--danger);border-color:var(--danger);" onclick="toggleStockSell('${s.id}')">- 매도</button>
+            <button class="btn-transfer" onclick="toggleStockEdit('${s.id}')">✎ 수정</button>
             ${stocks.length > 1 ? `<button class="btn-transfer" onclick="openTransfer('${s.id}')">⇄ 이체</button>` : ''}
           </div>
         </div>
@@ -1279,6 +1280,28 @@ function renderStocks() {
         <div style="display:flex;gap:8px;justify-content:flex-end;">
           <button class="btn-cancel" onclick="toggleStockSell('${s.id}')">취소</button>
           <button class="btn-save-stock" style="background:var(--danger);" onclick="addStockEntry('${s.id}', -1)">매도 추가</button>
+        </div>
+      </div>
+      <div class="stock-add-form" id="stock-edit-form-${s.id}" style="display:${isEditing === s.id + '_edit' ? 'flex' : 'none'};background:var(--bg2);border-top:1px solid var(--border);flex-direction:column;gap:10px;">
+        <div style="font-size:0.62rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);">계좌 정보 수정</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div class="detail-field">
+            <label>계좌명</label>
+            <input type="text" id="se-name-${s.id}" value="${s.name}" style="background:var(--surface);border:1px solid var(--border);border-radius:2px;padding:7px 10px;font-family:'DM Mono',monospace;font-size:0.78rem;color:var(--text);outline:none;width:100%;" />
+          </div>
+          <div class="detail-field">
+            <label>유형</label>
+            <select id="se-type-${s.id}" style="background:var(--surface);border:1px solid var(--border);border-radius:2px;padding:7px 10px;font-family:'DM Mono',monospace;font-size:0.78rem;color:var(--text);outline:none;width:100%;">
+              <option value="ETF" ${s.type==='ETF'?'selected':''}>ETF</option>
+              <option value="주식" ${s.type==='주식'?'selected':''}>주식</option>
+              <option value="ISA" ${s.type==='ISA'?'selected':''}>ISA</option>
+              <option value="기타" ${s.type==='기타'?'selected':''}>기타</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;">
+          <button class="btn-cancel" onclick="toggleStockEdit('${s.id}')">취소</button>
+          <button class="btn-save-stock" onclick="saveStockEdit('${s.id}')">저장</button>
         </div>
       </div>
     </div>`;
@@ -1606,6 +1629,34 @@ function toggleStockEntry(id) {
   if (editingStockId) {
     document.getElementById('se-date-' + id).value = new Date().toISOString().slice(0,10);
   }
+}
+function toggleStockEdit(id) {
+  const key = id + '_edit';
+  editingStockId = editingStockId === key ? null : key;
+  render();
+}
+function saveStockEdit(id) {
+  const s = stocks.find(x => x.id === id);
+  if (!s) return;
+  s.name = document.getElementById('se-name-' + id).value.trim() || s.name;
+  s.type = document.getElementById('se-type-' + id).value;
+  editingStockId = null;
+  save(); render();
+}
+function toggleStockEdit(id) {
+  const key = id + '_edit';
+  editingStockId = editingStockId === key ? null : key;
+  render();
+}
+function saveStockEdit(id) {
+  const s = stocks.find(x => x.id === id);
+  if (!s) return;
+  const nameEl = document.getElementById('se-name-' + id);
+  const typeEl = document.getElementById('se-type-' + id);
+  if (nameEl) s.name = nameEl.value.trim() || s.name;
+  if (typeEl) s.type = typeEl.value;
+  editingStockId = null;
+  save(); render();
 }
 function toggleStockSell(id) {
   const key = id + '_sell';
