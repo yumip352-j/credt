@@ -729,11 +729,7 @@
     <div class="s-label" style="color:#7a6f66;">예수금</div>
     <div class="s-val" id="sumYesugeum" style="color:#8a6a3a;">—</div>
   </div>
-  <div class="sum-divider"></div>
-  <div class="sum-item">
-    <div class="s-label" style="color:#7a6f66;">올해 신규 예금</div>
-    <div class="s-val" id="sumNewDeposit" style="color:var(--deposit);">—</div>
-  </div>
+
   <div class="sum-divider"></div>
   <div class="sum-item">
     <div class="s-label" style="color:#7a6f66;">올해 신규 주식</div>
@@ -1347,14 +1343,12 @@ function renderSummary() {
 
   // 올해 신규
   const thisYear = new Date().getFullYear().toString();
-  const newDepTotal = deposits
-    .filter(d => d.start && d.start.startsWith(thisYear))
-    .reduce((a, d) => a + (d.amount || 0), 0);
+
   const newStTotal = stocks.reduce((a, s) =>
     a + (s.entries || [])
       .filter(e => e.amount > 0 && e.date && e.date.startsWith(thisYear) && !e.note)
       .reduce((b, e) => b + e.amount, 0), 0);
-  document.getElementById('sumNewDeposit').textContent = newDepTotal ? fmt(newDepTotal) : '—';
+
   document.getElementById('sumNewStock').textContent = newStTotal ? fmt(newStTotal) : '—';
 
   // 올해 수입 총액
@@ -1622,7 +1616,7 @@ function saveStock() {
     id: uid(),
     name,
     type: document.getElementById('s-type').value,
-    entries: amount > 0 ? [{ id: uid(), date, amount }] : []
+    entries: amount > 0 ? [{ id: uid(), date, amount, note: '초기입력' }] : []
   });
   save(); render(); closeStockModal();
 }
